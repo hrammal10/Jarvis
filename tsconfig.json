@@ -19,6 +19,6 @@
 		"sourceMap": true,
 		"skipLibCheck": true,
 	},
-	"include": ["index.ts"]
+	"include": ["src/**/*"]
 }
 
