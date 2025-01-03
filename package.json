@@ -4,8 +4,14 @@
   "description": "Hassouna's Jarvis",
   "main": "index.js",
   "dependencies": {
+    "@discord-player/extractor": "^4.5.1",
+    "@discordjs/voice": "^0.18.0",
+    "discord-player": "^6.7.1",
     "discord.js": "^14.16.3",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "ffmpeg-static": "^5.2.0",
+    "opusscript": "^0.0.8",
+    "play-dl": "^1.9.7"
   },
   "scripts": {
     "build": "rm -rf dist && tsc",
@@ -14,10 +20,11 @@
     "dev": "nodemon src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Hassan Rammal",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@types/spotify-web-api-node": "^5.0.11",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
