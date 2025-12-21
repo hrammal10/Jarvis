@@ -23,7 +23,7 @@
     "sodium-native": "^5.0.10"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc",
+    "build": "npx rimraf dist && tsc",
     "prestart": "npm run build",
     "start": "ts-node src/index.ts",
     "dev": "nodemon src/index.ts",
@@ -41,6 +41,7 @@
     "@types/node": "^22.10.2",
     "@types/spotify-web-api-node": "^5.0.11",
     "nodemon": "^3.1.9",
+    "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   }
