@@ -29,3 +29,7 @@
 2025-12-19 22:03:23: (node:1108) Warning: YoutubeExtractor uses scraping-based streaming libraries which is known to be unstable at times.
 2025-12-19 22:03:23: An alternative is to use discord-player-youtubei https://npm.im/discord-player-youtubei
 2025-12-19 22:03:23: View this GitHub issue for more information: https://github.com/Androz2091/discord-player/issues/1922
+2025-12-21 17:02:50: (node:91195) DeprecationWarning: The ready event has been renamed to clientReady to distinguish it from the gateway READY event and will only emit under that name in v15. Please use clientReady instead.
+2025-12-21 17:02:50: (Use `node --trace-deprecation ...` to show where the warning was created)
+2025-12-21 17:06:22: (node:91195) TimeoutNegativeWarning: -6 is a negative number.
+2025-12-21 17:06:22: Timeout duration was set to 1.

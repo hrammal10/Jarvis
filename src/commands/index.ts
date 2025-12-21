@@ -1,5 +1,4 @@
 import { Message } from 'discord.js';
-import { Player } from 'discord-player';
 
 // Command handlers
 import { handleHello, handleEmpty } from './greetings';
@@ -8,7 +7,7 @@ import { handlePlay, handlePause, handleResume, handleStop, handleSkip, handleQu
 import { handleKick } from './moderation';
 import { handleHelp } from './help';
 
-export async function handleCommand(message: Message, command: string, player: Player): Promise<void> {
+export async function handleCommand(message: Message, command: string, _unused: any): Promise<void> {
     // Empty command - just "jarvis"
     if (command === '') {
         return handleEmpty(message);
@@ -16,27 +15,27 @@ export async function handleCommand(message: Message, command: string, player: P
 
     // Music commands (check first - URLs might contain other keywords)
     if (command.startsWith('play')) {
-        return handlePlay(message, command, player);
+        return handlePlay(message, command, null);
     }
 
     if (command.startsWith('pause')) {
-        return handlePause(message, player);
+        return handlePause(message, null);
     }
 
     if (command.startsWith('resume')) {
-        return handleResume(message, player);
+        return handleResume(message, null);
     }
 
     if (command.startsWith('stop')) {
-        return handleStop(message, player);
+        return handleStop(message, null);
     }
 
     if (command.startsWith('skip')) {
-        return handleSkip(message, player);
+        return handleSkip(message, null);
     }
 
     if (command.startsWith('queue')) {
-        return handleQueue(message, player);
+        return handleQueue(message, null);
     }
 
     // Greetings (use startsWith to avoid matching URLs)
