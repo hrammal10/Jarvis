@@ -2,7 +2,7 @@
   "name": "jarvis",
   "version": "1.0.0",
   "description": "Hassouna's Jarvis",
-  "main": "index.js",
+  "main": "dist/index.js",
   "dependencies": {
     "@discord-player/extractor": "^4.5.1",
     "@discordjs/voice": "^0.19.0",
