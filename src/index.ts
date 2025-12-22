@@ -5,10 +5,11 @@ import {
     createAudioResource,
     AudioPlayerStatus,
     VoiceConnectionStatus,
-    entersState
+    entersState,
+    StreamType
 } from '@discordjs/voice';
+import { spawn } from 'child_process';
 import dotenv from 'dotenv';
-import youtubedl from 'youtube-dl-exec';
 
 import { handleCommand } from './commands';
 
@@ -26,61 +27,78 @@ const client = new Client({
 });
 
 // Store active players per guild
-const players = new Map<string, ReturnType<typeof createAudioPlayer>>();
-const connections = new Map<string, ReturnType<typeof joinVoiceChannel>>();
-const queues = new Map<string, Array<{ url: string; title: string }>>();
+export const players = new Map<string, ReturnType<typeof createAudioPlayer>>();
+export const connections = new Map<string, ReturnType<typeof joinVoiceChannel>>();
+export const queues = new Map<string, Array<{ url: string; title: string }>>();
 
-// Helper function to search YouTube using youtube-dl-exec
+// Search YouTube using yt-dlp
 export async function ytSearch(query: string): Promise<{ url: string; title: string } | null> {
-    try {
-        // Add "audio" to prefer audio versions over music videos
-        const searchQuery = query.toLowerCase().includes('audio') || query.toLowerCase().includes('lyrics')
-            ? query
-            : `${query} audio`;
+    return new Promise((resolve) => {
+        const searchQuery = query.toLowerCase().includes('audio') ? query : `${query} audio`;
+        console.log(`Searching for: ${searchQuery}`);
         
-        const result = await youtubedl(`ytsearch:${searchQuery}`, {
-            dumpSingleJson: true,
-            noWarnings: true,
-            noCheckCertificates: true,
-            preferFreeFormats: true,
-        }) as any;
+        const ytdlp = spawn('yt-dlp', [
+            `ytsearch1:${searchQuery}`,
+            '--get-id',
+            '--get-title',
+            '--no-warnings',
+            '--no-playlist'
+        ]);
         
-        if (result && result.id && result.title) {
-            return {
-                title: result.title,
-                url: `https://www.youtube.com/watch?v=${result.id}`
-            };
-        }
-        return null;
-    } catch (error) {
-        console.error('youtube-dl search error:', error);
-        return null;
-    }
+        let output = '';
+        let error = '';
+        
+        ytdlp.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+        
+        ytdlp.stderr.on('data', (data) => {
+            error += data.toString();
+        });
+        
+        ytdlp.on('close', (code) => {
+            if (code !== 0 || !output.trim()) {
+                console.error('yt-dlp search error:', error);
+                resolve(null);
+                return;
+            }
+            
+            const lines = output.trim().split('\n');
+            if (lines.length >= 2) {
+                const title = lines[0];
+                const videoId = lines[1];
+                console.log(`Found: ${title} (${videoId})`);
+                resolve({
+                    title,
+                    url: `https://www.youtube.com/watch?v=${videoId}`
+                });
+            } else {
+                resolve(null);
+            }
+        });
+    });
 }
 
-// Get audio stream URL using youtube-dl-exec
-export async function getStreamUrl(videoUrl: string): Promise<string | null> {
-    try {
-        const result = await youtubedl(videoUrl, {
-            dumpSingleJson: true,
-            noWarnings: true,
-            noCheckCertificates: true,
-            preferFreeFormats: true,
-            format: 'bestaudio',
-        }) as any;
-        
-        return result?.url || null;
-    } catch (error) {
-        console.error('youtube-dl stream error:', error);
-        return null;
-    }
+// Get audio stream using yt-dlp (returns a readable stream)
+export function getAudioStream(url: string): ReturnType<typeof spawn> {
+    console.log(`Getting stream for: ${url}`);
+    
+    return spawn('yt-dlp', [
+        url,
+        '-f', 'bestaudio',
+        '-o', '-',
+        '--no-warnings',
+        '--no-playlist'
+    ], {
+        stdio: ['ignore', 'pipe', 'pipe']
+    });
 }
 
-// Export for use in music commands
-export { players, connections, queues, createAudioPlayer, createAudioResource, AudioPlayerStatus, joinVoiceChannel, entersState, VoiceConnectionStatus };
+// Export voice functions for music commands
+export { createAudioPlayer, createAudioResource, AudioPlayerStatus, joinVoiceChannel, entersState, VoiceConnectionStatus, StreamType };
 
 // Bot ready event
-client.once('ready', () => {
+client.once('clientReady', () => {
     console.log('Jarvis is online! 🤖');
     console.log('Using @discordjs/voice with yt-dlp');
 });
@@ -95,14 +113,14 @@ client.on('messageCreate', async message => {
         const command = (
             message.content.slice(0, jarvisIndex) + 
             message.content.slice(jarvisIndex + 6)
-        ).trim().replace(/\s+/g, ' '); // Normalize multiple spaces to single space
+        ).trim().replace(/\s+/g, ' ');
         
         const parts = command.split(' ');
         const commandWord = parts[0]?.toLowerCase() || '';
         const args = parts.slice(1).join(' ');
         const processedCommand = commandWord + (args ? ' ' + args : '');
 
-        await handleCommand(message, processedCommand, null as any);
+        await handleCommand(message, processedCommand, null);
     }
 });
 

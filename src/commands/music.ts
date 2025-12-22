@@ -1,8 +1,8 @@
-import { Message, VoiceBasedChannel } from 'discord.js';
+import { Message } from 'discord.js';
 import { getFullTitle, send } from '../utils/helpers';
 import {
     ytSearch,
-    getStreamUrl,
+    getAudioStream,
     players,
     connections,
     queues,
@@ -11,7 +11,8 @@ import {
     AudioPlayerStatus,
     joinVoiceChannel,
     entersState,
-    VoiceConnectionStatus
+    VoiceConnectionStatus,
+    StreamType
 } from '../index';
 
 async function playNext(guildId: string, textChannel: any) {
@@ -25,15 +26,19 @@ async function playNext(guildId: string, textChannel: any) {
     const track = queue[0];
     
     try {
-        const streamUrl = await getStreamUrl(track.url);
-        if (!streamUrl) {
-            textChannel?.send(`❌ Couldn't get stream for: ${track.title}`);
-            queue.shift();
-            playNext(guildId, textChannel);
-            return;
-        }
-
-        const resource = createAudioResource(streamUrl);
+        const ytdlp = getAudioStream(track.url);
+        
+        ytdlp.stderr?.on('data', (data) => {
+            const msg = data.toString();
+            if (!msg.includes('Downloading') && !msg.includes('frame')) {
+                console.log('yt-dlp:', msg);
+            }
+        });
+        
+        const resource = createAudioResource(ytdlp.stdout!, {
+            inputType: StreamType.Arbitrary
+        });
+        
         player.play(resource);
         textChannel?.send(`🎵 Now playing: **${track.title}**`);
         
@@ -45,7 +50,7 @@ async function playNext(guildId: string, textChannel: any) {
     }
 }
 
-export async function handlePlay(message: Message, command: string, _distube: any): Promise<void> {
+export async function handlePlay(message: Message, command: string, _unused: any): Promise<void> {
     const fullTitle = getFullTitle(message);
 
     if (!message.member?.voice.channel) {
@@ -67,22 +72,19 @@ export async function handlePlay(message: Message, command: string, _distube: an
     }
 
     // Support "song by artist" format
-    let searchDisplay = query;
-    let searchQuery = query;
-    
     if (query.toLowerCase().includes(' by ')) {
         const [songPart, artistPart] = query.split(/\s+by\s+/i);
-        searchQuery = `${artistPart.trim()} ${songPart.trim()}`;
-        searchDisplay = `**${songPart.trim()}** by **${artistPart.trim()}**`;
-    } else {
-        searchDisplay = `**${query}**`;
+        query = `${artistPart.trim()} ${songPart.trim()}`;
     }
 
     try {
-        // Search for the track
-        const result = query.startsWith('http') 
-            ? { url: query, title: query }
-            : await ytSearch(searchQuery);
+        // Search for the track (or use URL directly)
+        let result;
+        if (query.startsWith('http')) {
+            result = { url: query, title: 'Direct link' };
+        } else {
+            result = await ytSearch(query);
+        }
             
         if (!result) {
             await send(message, `${fullTitle}, no results found!`);
@@ -130,7 +132,7 @@ export async function handlePlay(message: Message, command: string, _distube: an
             
             player.on('error', (error) => {
                 console.error('Player error:', error);
-                send(message, `❌ Playback error!`);
+                send(message, `❌ Playback error: ${error.message}`);
             });
             
             // Wait for connection
@@ -157,7 +159,7 @@ export async function handlePlay(message: Message, command: string, _distube: an
     }
 }
 
-export async function handlePause(message: Message, _distube: any): Promise<void> {
+export async function handlePause(message: Message, _unused: any): Promise<void> {
     const fullTitle = getFullTitle(message);
     if (!message.guild) return;
 
@@ -170,7 +172,7 @@ export async function handlePause(message: Message, _distube: any): Promise<void
     }
 }
 
-export async function handleResume(message: Message, _distube: any): Promise<void> {
+export async function handleResume(message: Message, _unused: any): Promise<void> {
     const fullTitle = getFullTitle(message);
     if (!message.guild) return;
 
@@ -183,7 +185,7 @@ export async function handleResume(message: Message, _distube: any): Promise<voi
     }
 }
 
-export async function handleStop(message: Message, _distube: any): Promise<void> {
+export async function handleStop(message: Message, _unused: any): Promise<void> {
     const fullTitle = getFullTitle(message);
     if (!message.guild) return;
 
@@ -204,7 +206,7 @@ export async function handleStop(message: Message, _distube: any): Promise<void>
     await send(message, `⏹️ Stopped the music and cleared queue, ${fullTitle}`);
 }
 
-export async function handleSkip(message: Message, _distube: any): Promise<void> {
+export async function handleSkip(message: Message, _unused: any): Promise<void> {
     const fullTitle = getFullTitle(message);
     if (!message.guild) return;
 
@@ -220,7 +222,7 @@ export async function handleSkip(message: Message, _distube: any): Promise<void>
     }
 }
 
-export async function handleQueue(message: Message, _distube: any): Promise<void> {
+export async function handleQueue(message: Message, _unused: any): Promise<void> {
     const fullTitle = getFullTitle(message);
     if (!message.guild) return;
 

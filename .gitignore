@@ -3,3 +3,4 @@ dist/
 .envlogs/
 .env
 *.swp
+*-player-script.js
