@@ -20,7 +20,8 @@
     "libsodium-wrappers": "^0.7.15",
     "opusscript": "^0.0.8",
     "play-dl": "^1.9.7",
-    "sodium-native": "^5.0.10"
+    "sodium-native": "^5.0.10",
+    "youtube-dl-exec": "^3.0.27"
   },
   "scripts": {
     "build": "npx rimraf dist && tsc",

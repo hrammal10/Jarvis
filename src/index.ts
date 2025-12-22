@@ -8,12 +8,9 @@ import {
     entersState
 } from '@discordjs/voice';
 import dotenv from 'dotenv';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import youtubedl from 'youtube-dl-exec';
 
 import { handleCommand } from './commands';
-
-const execAsync = promisify(exec);
 
 dotenv.config();
 
@@ -33,43 +30,48 @@ const players = new Map<string, ReturnType<typeof createAudioPlayer>>();
 const connections = new Map<string, ReturnType<typeof joinVoiceChannel>>();
 const queues = new Map<string, Array<{ url: string; title: string }>>();
 
-// Helper function to search YouTube using yt-dlp (async to not block audio)
+// Helper function to search YouTube using youtube-dl-exec
 export async function ytSearch(query: string): Promise<{ url: string; title: string } | null> {
     try {
         // Add "audio" to prefer audio versions over music videos
         const searchQuery = query.toLowerCase().includes('audio') || query.toLowerCase().includes('lyrics')
             ? query
             : `${query} audio`;
-            
-        const { stdout } = await execAsync(
-            `yt-dlp "ytsearch:${searchQuery}" --get-id --get-title --no-warnings 2>/dev/null`,
-            { timeout: 20000 }
-        );
         
-        const lines = stdout.trim().split('\n').filter(l => l.trim());
-        if (lines.length >= 2) {
+        const result = await youtubedl(`ytsearch:${searchQuery}`, {
+            dumpSingleJson: true,
+            noWarnings: true,
+            noCheckCertificates: true,
+            preferFreeFormats: true,
+        }) as any;
+        
+        if (result && result.id && result.title) {
             return {
-                title: lines[0],
-                url: `https://www.youtube.com/watch?v=${lines[1]}`
+                title: result.title,
+                url: `https://www.youtube.com/watch?v=${result.id}`
             };
         }
         return null;
     } catch (error) {
-        console.error('yt-dlp search error:', error);
+        console.error('youtube-dl search error:', error);
         return null;
     }
 }
 
-// Get audio stream URL from yt-dlp (async to not block audio)
+// Get audio stream URL using youtube-dl-exec
 export async function getStreamUrl(videoUrl: string): Promise<string | null> {
     try {
-        const { stdout } = await execAsync(
-            `yt-dlp "${videoUrl}" --get-url -f bestaudio --no-warnings 2>/dev/null`,
-            { timeout: 20000 }
-        );
-        return stdout.trim().split('\n')[0] || null;
+        const result = await youtubedl(videoUrl, {
+            dumpSingleJson: true,
+            noWarnings: true,
+            noCheckCertificates: true,
+            preferFreeFormats: true,
+            format: 'bestaudio',
+        }) as any;
+        
+        return result?.url || null;
     } catch (error) {
-        console.error('yt-dlp stream error:', error);
+        console.error('youtube-dl stream error:', error);
         return null;
     }
 }
