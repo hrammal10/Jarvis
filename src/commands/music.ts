@@ -71,14 +71,12 @@ export async function handlePlay(message: Message, command: string, _unused: any
         return;
     }
 
-    // Support "song by artist" format
     if (query.toLowerCase().includes(' by ')) {
         const [songPart, artistPart] = query.split(/\s+by\s+/i);
         query = `${artistPart.trim()} ${songPart.trim()}`;
     }
 
     try {
-        // Search for the track (or use URL directly)
         let result;
         if (query.startsWith('http')) {
             result = { url: query, title: 'Direct link' };
@@ -93,16 +91,13 @@ export async function handlePlay(message: Message, command: string, _unused: any
 
         const guildId = message.guild.id;
         
-        // Get or create queue
         if (!queues.has(guildId)) {
             queues.set(guildId, []);
         }
         const queue = queues.get(guildId)!;
         
-        // Add to queue
         queue.push(result);
         
-        // If not connected, join and set up player
         if (!connections.has(guildId)) {
             const connection = joinVoiceChannel({
                 channelId: message.member.voice.channel.id,
@@ -117,7 +112,6 @@ export async function handlePlay(message: Message, command: string, _unused: any
             
             connection.subscribe(player);
             
-            // Handle track ending
             player.on(AudioPlayerStatus.Idle, () => {
                 const q = queues.get(guildId);
                 if (q && q.length > 0) {
@@ -135,7 +129,6 @@ export async function handlePlay(message: Message, command: string, _unused: any
                 send(message, `❌ Playback error: ${error.message}`);
             });
             
-            // Wait for connection
             try {
                 await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
             } catch (error) {
@@ -146,7 +139,6 @@ export async function handlePlay(message: Message, command: string, _unused: any
             }
         }
 
-        // If this is the only track, start playing
         if (queue.length === 1) {
             playNext(guildId, message.channel);
         } else {

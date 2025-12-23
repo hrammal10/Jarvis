@@ -13,7 +13,6 @@ export async function handleKick(message: Message, command: string): Promise<voi
     const isServerKick = command.includes('server');
     const isCallKick = command.includes('call') || command.includes('voice');
 
-    // Extract target name
     const words = command.split(' ');
     const kickIndex = words.findIndex(word => word === 'kick');
     const targetName = kickIndex !== -1 ? words[kickIndex + 1] : '';
@@ -23,7 +22,6 @@ export async function handleKick(message: Message, command: string): Promise<voi
         return;
     }
 
-    // Fetch and find member
     try {
         await message.guild?.members.fetch();
     } catch (error) {
@@ -40,7 +38,6 @@ export async function handleKick(message: Message, command: string): Promise<voi
         return;
     }
 
-    // Handle server kick
     if (isServerKick) {
         if (!AUTHORIZED_KICK_USERS.includes(message.member?.displayName.toLowerCase() || '')) {
             await send(message, `${fullTitle}, you are not authorized to kick members from the server.`);
@@ -57,7 +54,6 @@ export async function handleKick(message: Message, command: string): Promise<voi
         return;
     }
 
-    // Handle voice kick
     if (isCallKick) {
         if (member.voice.channel) {
             try {

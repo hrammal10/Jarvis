@@ -31,7 +31,6 @@ export const players = new Map<string, ReturnType<typeof createAudioPlayer>>();
 export const connections = new Map<string, ReturnType<typeof joinVoiceChannel>>();
 export const queues = new Map<string, Array<{ url: string; title: string }>>();
 
-// Search YouTube using yt-dlp
 export async function ytSearch(query: string): Promise<{ url: string; title: string } | null> {
     return new Promise((resolve) => {
         const searchQuery = query.toLowerCase().includes('audio') ? query : `${query} audio`;
@@ -79,7 +78,6 @@ export async function ytSearch(query: string): Promise<{ url: string; title: str
     });
 }
 
-// Get audio stream using yt-dlp (returns a readable stream)
 export function getAudioStream(url: string): ReturnType<typeof spawn> {
     console.log(`Getting stream for: ${url}`);
     
@@ -94,16 +92,13 @@ export function getAudioStream(url: string): ReturnType<typeof spawn> {
     });
 }
 
-// Export voice functions for music commands
 export { createAudioPlayer, createAudioResource, AudioPlayerStatus, joinVoiceChannel, entersState, VoiceConnectionStatus, StreamType };
 
-// Bot ready event
 client.once('clientReady', () => {
     console.log('Jarvis is online! 🤖');
     console.log('Using @discordjs/voice with yt-dlp');
 });
 
-// Message handler
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
 

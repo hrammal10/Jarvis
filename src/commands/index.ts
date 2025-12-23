@@ -13,7 +13,6 @@ export async function handleCommand(message: Message, command: string, _unused: 
         return handleEmpty(message);
     }
 
-    // Music commands (check first - URLs might contain other keywords)
     if (command.startsWith('play')) {
         return handlePlay(message, command, null);
     }
@@ -38,7 +37,6 @@ export async function handleCommand(message: Message, command: string, _unused: 
         return handleQueue(message, null);
     }
 
-    // Greetings (use startsWith to avoid matching URLs)
     if (['hello', 'hey', 'yo', 'hi'].some(word => command.startsWith(word))) {
         return handleHello(message);
     }
