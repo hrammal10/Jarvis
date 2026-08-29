@@ -4,13 +4,14 @@ import { isAuthorizedKickUser } from '../config/constants';
 
 export async function handleKick(message: Message, command: string): Promise<void> {
     const fullTitle = getFullTitle(message);
-    const isServerKick = command.includes('server');
-    const isCallKick = command.includes('call') || command.includes('voice');
 
-    if ((isServerKick || isCallKick) && !isAuthorizedKickUser(message.author.id)) {
+    if (!isAuthorizedKickUser(message.author.id)) {
         await send(message, `${fullTitle}, you are not authorized to kick members.`);
         return;
     }
+
+    const isServerKick = command.includes('server');
+    const isCallKick = command.includes('call') || command.includes('voice');
 
     await send(message, 'On it.');
     await sleep(500);
