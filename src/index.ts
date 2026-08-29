@@ -30,8 +30,18 @@ const client = new Client({
 export const players = new Map<string, ReturnType<typeof createAudioPlayer>>();
 export const connections = new Map<string, ReturnType<typeof joinVoiceChannel>>();
 export const queues = new Map<string, Array<{ url: string; title: string }>>();
+export const streams = new Map<string, ReturnType<typeof spawn>>();
 
 const YT_DLP_SEARCH_TIMEOUT_MS = 30_000;
+const YT_DLP_STREAM_START_TIMEOUT_MS = 30_000;
+const YT_DLP_KILL_GRACE_MS = 5_000;
+
+// yt-dlp wedged on a network read can ignore SIGTERM and keep buffering forever
+function killWithEscalation(child: ReturnType<typeof spawn>): void {
+    child.kill();
+    const sigkill = setTimeout(() => child.kill('SIGKILL'), YT_DLP_KILL_GRACE_MS);
+    child.once('close', () => clearTimeout(sigkill));
+}
 
 export async function ytSearch(query: string): Promise<{ url: string; title: string } | null> {
     return new Promise((resolve) => {
@@ -59,7 +69,7 @@ export async function ytSearch(query: string): Promise<{ url: string; title: str
 
         const timeout = setTimeout(() => {
             console.error(`yt-dlp search timed out after ${YT_DLP_SEARCH_TIMEOUT_MS}ms`);
-            ytdlp.kill();
+            killWithEscalation(ytdlp);
             finish(null);
         }, YT_DLP_SEARCH_TIMEOUT_MS);
         
@@ -78,7 +88,9 @@ export async function ytSearch(query: string): Promise<{ url: string; title: str
 
         ytdlp.on('close', (code) => {
             if (code !== 0 || !output.trim()) {
-                console.error('yt-dlp search error:', error);
+                if (!settled) {
+                    console.error('yt-dlp search error:', error);
+                }
                 finish(null);
                 return;
             }
@@ -99,7 +111,10 @@ export async function ytSearch(query: string): Promise<{ url: string; title: str
     });
 }
 
-export function getAudioStream(url: string): ReturnType<typeof spawn> {
+export function getAudioStream(
+    url: string,
+    onError?: (error: Error) => void
+): ReturnType<typeof spawn> {
     console.log(`Getting stream for: ${url}`);
 
     const ytdlp = spawn('yt-dlp', [
@@ -112,9 +127,27 @@ export function getAudioStream(url: string): ReturnType<typeof spawn> {
         stdio: ['ignore', 'pipe', 'pipe']
     });
 
-    ytdlp.once('error', (error) => {
-        console.error('Failed to start yt-dlp stream:', error);
-    });
+    let reported = false;
+    const report = (error: Error): void => {
+        if (reported) return;
+        reported = true;
+        console.error('yt-dlp stream failed:', error);
+        onError?.(error);
+    };
+
+    ytdlp.once('error', report);
+    // without this an error before createAudioResource attaches its own handler is unhandled
+    ytdlp.stdout?.on('error', report);
+
+    // Only bounds the wait for the first byte. A stall later in the track is
+    // indistinguishable from a paused player, which stops draining stdout.
+    const startTimeout = setTimeout(() => {
+        killWithEscalation(ytdlp);
+        report(new Error(`yt-dlp produced no audio within ${YT_DLP_STREAM_START_TIMEOUT_MS}ms`));
+    }, YT_DLP_STREAM_START_TIMEOUT_MS);
+
+    ytdlp.stdout?.once('data', () => clearTimeout(startTimeout));
+    ytdlp.once('close', () => clearTimeout(startTimeout));
 
     return ytdlp;
 }

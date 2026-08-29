@@ -6,6 +6,7 @@ import {
     players,
     connections,
     queues,
+    streams,
     createAudioPlayer,
     createAudioResource,
     AudioPlayerStatus,
@@ -24,9 +25,28 @@ async function playNext(guildId: string, textChannel: any) {
     }
 
     const track = queue[0];
-    
+
+    streams.get(guildId)?.kill();
+    streams.delete(guildId);
+
+    let failed = false;
+    const onFailure = () => {
+        if (failed) return;
+        failed = true;
+        textChannel?.send(`❌ Error playing: ${track.title}`);
+        // stopping a live player emits Idle, and that handler advances the queue for us
+        if (!player.stop(true)) {
+            queue.shift();
+            playNext(guildId, textChannel);
+        }
+    };
+
     try {
-        const ytdlp = getAudioStream(track.url);
+        const ytdlp = getAudioStream(track.url, (error) => {
+            console.error('Playback error:', error);
+            onFailure();
+        });
+        streams.set(guildId, ytdlp);
         
         ytdlp.stderr?.on('data', (data) => {
             const msg = data.toString();
@@ -44,9 +64,7 @@ async function playNext(guildId: string, textChannel: any) {
         
     } catch (error) {
         console.error('Playback error:', error);
-        textChannel?.send(`❌ Error playing: ${track.title}`);
-        queue.shift();
-        playNext(guildId, textChannel);
+        onFailure();
     }
 }
 
@@ -193,6 +211,8 @@ export async function handleStop(message: Message, _unused: any): Promise<void> 
         player.stop();
         players.delete(guildId);
     }
+    streams.get(guildId)?.kill();
+    streams.delete(guildId);
     queues.delete(guildId);
     
     await send(message, `⏹️ Stopped the music and cleared queue, ${fullTitle}`);
