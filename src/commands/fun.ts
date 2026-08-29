@@ -32,7 +32,13 @@ export async function handleFlip(message: Message, command: string): Promise<voi
 
 export async function handleRoll(message: Message, command: string): Promise<void> {
     const fullTitle = getFullTitle(message);
-    const sides = parseInt(command.split(' ')[2]) || 6;
+    const sidesArgument = command.split(' ')[1];
+    const sides = sidesArgument === undefined ? 6 : Number(sidesArgument);
+
+    if (!Number.isSafeInteger(sides)) {
+        await send(message, `${fullTitle}, sides must be a whole number!`);
+        return;
+    }
 
     if (sides < 2) {
         await send(message, `${fullTitle}, minimum sides is 2!`);

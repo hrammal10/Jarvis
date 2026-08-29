@@ -12,7 +12,7 @@ const HELP_TEXT = `**Jarvis Commands:**
 \`jarvis stop\` - Stop the music
 \`jarvis size\` - Check your size
 \`jarvis flip <heads/tails>\` - Flip a coin
-\`jarvis roll\` - Roll a dice
+\`jarvis roll [sides]\` - Roll a die
 \`jarvis joke\` - Tell a joke
 \`jarvis hug\` - Get a hug
 \`jarvis clap\` - Get applause
