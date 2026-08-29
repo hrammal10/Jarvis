@@ -108,7 +108,7 @@ client.on('messageCreate', async message => {
         const command = (
             message.content.slice(0, jarvisIndex) + 
             message.content.slice(jarvisIndex + 6)
-        ).trim().replace(/\s+/g, ' ');
+        ).trim().replace(/\s+/g, ' ').replace(/^[^a-z0-9]+/i, '');
         
         const parts = command.split(' ');
         const commandWord = parts[0]?.toLowerCase() || '';

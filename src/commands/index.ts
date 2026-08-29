@@ -6,6 +6,7 @@ import { handleSize, handleJoke, handleFlip, handleRoll, handleHug, handleClap, 
 import { handlePlay, handlePause, handleResume, handleStop, handleSkip, handleQueue } from './music';
 import { handleKick } from './moderation';
 import { handleHelp } from './help';
+import { getFullTitle, send } from '../utils/helpers';
 
 export async function handleCommand(message: Message, command: string, _unused: any): Promise<void> {
     // Empty command - just "jarvis"
@@ -13,7 +14,7 @@ export async function handleCommand(message: Message, command: string, _unused: 
         return handleEmpty(message);
     }
 
-    const commandName = command.split(' ')[0];
+    const commandName = command.split(' ')[0].replace(/[^a-z0-9]/gi, '');
 
     if (commandName === 'play') {
         return handlePlay(message, command, null);
@@ -85,4 +86,7 @@ export async function handleCommand(message: Message, command: string, _unused: 
     if (commandName === 'help') {
         return handleHelp(message);
     }
+
+    const fullTitle = getFullTitle(message);
+    await send(message, `${fullTitle}, I don't know that one. Try "jarvis help".`);
 }
