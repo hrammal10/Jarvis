@@ -16,7 +16,14 @@ export const JOKES = [
     "What do you call a bear with no teeth? A gummy bear."
 ];
 
-export const AUTHORIZED_KICK_USERS = ['rythm', 'ihadi', 'dantehz'];
+export function isAuthorizedKickUser(userId: string): boolean {
+    const authorizedUserIds = process.env.AUTHORIZED_KICK_USER_IDS
+        ?.split(',')
+        .map(id => id.trim())
+        .filter(Boolean) ?? [];
+
+    return authorizedUserIds.includes(userId);
+}
 
 export const PLAYER_OPTIONS = {
     ytdlOptions: {
@@ -36,4 +43,3 @@ export const QUEUE_OPTIONS = {
     bufferingTimeout: 15000,
     connectionTimeout: undefined,
 };
-

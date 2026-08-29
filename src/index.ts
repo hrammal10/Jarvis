@@ -15,6 +15,10 @@ import { handleCommand } from './commands';
 
 dotenv.config();
 
+if (!process.env.AUTHORIZED_KICK_USER_IDS?.split(',').some(id => id.trim())) {
+    console.warn('AUTHORIZED_KICK_USER_IDS is not set. All kick commands will be denied.');
+}
+
 // Initialize Discord client
 const client = new Client({
     intents: [
