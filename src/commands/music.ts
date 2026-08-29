@@ -17,6 +17,24 @@ import {
 
 const connectionAttempts = new Map<string, Promise<void>>();
 
+function destroyConnection(connection: any) {
+    if (connection.state.status === VoiceConnectionStatus.Destroyed) {
+        return;
+    }
+    try {
+        connection.destroy();
+    } catch (error) {
+        console.error('Connection destroy error:', error);
+    }
+}
+
+function removeTrack(queue: any[], track: any) {
+    const index = queue.indexOf(track);
+    if (index !== -1) {
+        queue.splice(index, 1);
+    }
+}
+
 async function playNext(guildId: string, textChannel: any) {
     const queue = queues.get(guildId);
     const player = players.get(guildId);
@@ -100,7 +118,13 @@ export async function handlePlay(message: Message, command: string, _unused: any
         
         queue.push(result);
         
-        if (!connections.has(guildId)) {
+        if (!connections.has(guildId) || !players.has(guildId)) {
+            const stale = connections.get(guildId);
+            if (stale) {
+                destroyConnection(stale);
+                connections.delete(guildId);
+            }
+
             const connection = joinVoiceChannel({
                 channelId: message.member.voice.channel.id,
                 guildId: guildId,
@@ -138,15 +162,15 @@ export async function handlePlay(message: Message, command: string, _unused: any
             try {
                 await connectionAttempt;
             } catch (error) {
-                queues.delete(guildId);
+                removeTrack(queue, result);
                 if (players.get(guildId) === player) {
                     players.delete(guildId);
-                    player.stop();
                 }
+                player.stop();
                 if (connections.get(guildId) === connection) {
                     connections.delete(guildId);
-                    connection.destroy();
                 }
+                destroyConnection(connection);
                 await send(message, `${fullTitle}, couldn't connect to voice channel!`);
                 return;
             } finally {
@@ -161,14 +185,23 @@ export async function handlePlay(message: Message, command: string, _unused: any
                 try {
                     await connectionAttempt;
                 } catch (error) {
-                    await send(message, `${fullTitle}, couldn't connect to voice channel!`);
+                    // The handler that opened the connection reports the failure and
+                    // tears everything down, so stay quiet here instead of repeating it.
+                    removeTrack(queue, result);
                     return;
                 }
             }
         }
 
+        // Awaiting the connection gives !stop (and a failed attempt from another
+        // handler) time to wipe this guild's state, so re-check it before replying.
         const player = players.get(guildId);
-        if (player?.state.status === AudioPlayerStatus.Idle && queue.length > 0) {
+        if (!player || queues.get(guildId) !== queue) {
+            await send(message, `${fullTitle}, playback was stopped before your track could start.`);
+            return;
+        }
+
+        if (player.state.status === AudioPlayerStatus.Idle && queue.length > 0) {
             playNext(guildId, message.channel);
         } else {
             await send(message, `✅ Added to queue: **${result.title}** (Position: ${queue.length})`);
