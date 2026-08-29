@@ -31,6 +31,8 @@ export const players = new Map<string, ReturnType<typeof createAudioPlayer>>();
 export const connections = new Map<string, ReturnType<typeof joinVoiceChannel>>();
 export const queues = new Map<string, Array<{ url: string; title: string }>>();
 
+const YT_DLP_SEARCH_TIMEOUT_MS = 30_000;
+
 export async function ytSearch(query: string): Promise<{ url: string; title: string } | null> {
     return new Promise((resolve) => {
         const searchQuery = query.toLowerCase().includes('audio') ? query : `${query} audio`;
@@ -46,6 +48,20 @@ export async function ytSearch(query: string): Promise<{ url: string; title: str
         
         let output = '';
         let error = '';
+        let settled = false;
+
+        const finish = (result: { url: string; title: string } | null): void => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeout);
+            resolve(result);
+        };
+
+        const timeout = setTimeout(() => {
+            console.error(`yt-dlp search timed out after ${YT_DLP_SEARCH_TIMEOUT_MS}ms`);
+            ytdlp.kill();
+            finish(null);
+        }, YT_DLP_SEARCH_TIMEOUT_MS);
         
         ytdlp.stdout.on('data', (data) => {
             output += data.toString();
@@ -54,11 +70,16 @@ export async function ytSearch(query: string): Promise<{ url: string; title: str
         ytdlp.stderr.on('data', (data) => {
             error += data.toString();
         });
-        
+
+        ytdlp.once('error', (spawnError) => {
+            console.error('Failed to start yt-dlp search:', spawnError);
+            finish(null);
+        });
+
         ytdlp.on('close', (code) => {
             if (code !== 0 || !output.trim()) {
                 console.error('yt-dlp search error:', error);
-                resolve(null);
+                finish(null);
                 return;
             }
             
@@ -67,12 +88,12 @@ export async function ytSearch(query: string): Promise<{ url: string; title: str
                 const title = lines[0];
                 const videoId = lines[1];
                 console.log(`Found: ${title} (${videoId})`);
-                resolve({
+                finish({
                     title,
                     url: `https://www.youtube.com/watch?v=${videoId}`
                 });
             } else {
-                resolve(null);
+                finish(null);
             }
         });
     });
@@ -80,8 +101,8 @@ export async function ytSearch(query: string): Promise<{ url: string; title: str
 
 export function getAudioStream(url: string): ReturnType<typeof spawn> {
     console.log(`Getting stream for: ${url}`);
-    
-    return spawn('yt-dlp', [
+
+    const ytdlp = spawn('yt-dlp', [
         url,
         '-f', 'bestaudio',
         '-o', '-',
@@ -90,6 +111,12 @@ export function getAudioStream(url: string): ReturnType<typeof spawn> {
     ], {
         stdio: ['ignore', 'pipe', 'pipe']
     });
+
+    ytdlp.once('error', (error) => {
+        console.error('Failed to start yt-dlp stream:', error);
+    });
+
+    return ytdlp;
 }
 
 export { createAudioPlayer, createAudioResource, AudioPlayerStatus, joinVoiceChannel, entersState, VoiceConnectionStatus, StreamType };
