@@ -119,14 +119,18 @@ export async function handlePlay(message: Message, command: string, _unused: any
                     if (q.length > 0) {
                         playNext(guildId, message.channel);
                     } else {
-                        send(message, '🎵 Queue finished!');
+                        void send(message, '🎵 Queue finished!').catch(error => {
+                            console.error('Queue completion message error:', error);
+                        });
                     }
                 }
             });
             
             player.on('error', (error) => {
                 console.error('Player error:', error);
-                send(message, `❌ Playback error: ${error.message}`);
+                void send(message, `❌ Playback error: ${error.message}`).catch(sendError => {
+                    console.error('Playback error message failed:', sendError);
+                });
             });
             
             try {
