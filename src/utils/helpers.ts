@@ -34,23 +34,15 @@ export function getFullTitle(message: Message): string {
 
 // Type-safe channel send helper
 export async function send(message: Message, content: string | MessagePayload | MessageCreateOptions): Promise<void> {
-    try {
-        if (message.channel.isSendable()) {
-            await message.channel.send(content);
-        } else {
-            console.error('Channel is not sendable');
-        }
-    } catch (error) {
-        console.error('Error sending message:', error);
+    if (!message.channel.isSendable()) {
+        throw new Error('Channel is not sendable');
     }
+
+    await message.channel.send(content);
 }
 
 export async function sendGif(message: Message, gifName: string): Promise<void> {
-    try {
-        await send(message, { files: [getGifPath(gifName)] });
-    } catch (error) {
-        console.error('Error sending GIF:', error);
-    }
+    await send(message, { files: [getGifPath(gifName)] });
 }
 
 export function sleep(ms: number): Promise<void> {

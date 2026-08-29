@@ -115,7 +115,11 @@ client.on('messageCreate', async message => {
         const args = parts.slice(1).join(' ');
         const processedCommand = commandWord + (args ? ' ' + args : '');
 
-        await handleCommand(message, processedCommand, null);
+        try {
+            await handleCommand(message, processedCommand, null);
+        } catch (error) {
+            console.error('Command error:', error);
+        }
     }
 });
 
