@@ -1,17 +1,21 @@
 import { Message } from 'discord.js';
 import { getFullTitle, sendGif, sleep, send } from '../utils/helpers';
-import { AUTHORIZED_KICK_USERS } from '../config/constants';
+import { isAuthorizedKickUser } from '../config/constants';
 
 export async function handleKick(message: Message, command: string): Promise<void> {
     const fullTitle = getFullTitle(message);
+    const isServerKick = command.includes('server');
+    const isCallKick = command.includes('call') || command.includes('voice');
+
+    if ((isServerKick || isCallKick) && !isAuthorizedKickUser(message.author.id)) {
+        await send(message, `${fullTitle}, you are not authorized to kick members.`);
+        return;
+    }
 
     await send(message, 'On it.');
     await sleep(500);
     await sendGif(message, 'processing');
     await sleep(800);
-
-    const isServerKick = command.includes('server');
-    const isCallKick = command.includes('call') || command.includes('voice');
 
     const words = command.split(' ');
     const kickIndex = words.findIndex(word => word === 'kick');
@@ -39,11 +43,6 @@ export async function handleKick(message: Message, command: string): Promise<voi
     }
 
     if (isServerKick) {
-        if (!AUTHORIZED_KICK_USERS.includes(message.member?.displayName.toLowerCase() || '')) {
-            await send(message, `${fullTitle}, you are not authorized to kick members from the server.`);
-            return;
-        }
-
         try {
             await member.kick('Kicked by Jarvis');
             await send(message, `Kicked ${member.displayName} from the server, ${fullTitle}.`);
