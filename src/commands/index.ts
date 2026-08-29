@@ -6,6 +6,7 @@ import { handleSize, handleJoke, handleFlip, handleRoll, handleHug, handleClap, 
 import { handlePlay, handlePause, handleResume, handleStop, handleSkip, handleQueue } from './music';
 import { handleKick } from './moderation';
 import { handleHelp } from './help';
+import { getFullTitle, send } from '../utils/helpers';
 
 export async function handleCommand(message: Message, command: string, _unused: any): Promise<void> {
     // Empty command - just "jarvis"
@@ -13,74 +14,79 @@ export async function handleCommand(message: Message, command: string, _unused: 
         return handleEmpty(message);
     }
 
-    if (command.startsWith('play')) {
+    const commandName = command.split(' ')[0].replace(/[^a-z0-9]/gi, '');
+
+    if (commandName === 'play') {
         return handlePlay(message, command, null);
     }
 
-    if (command.startsWith('pause')) {
+    if (commandName === 'pause') {
         return handlePause(message, null);
     }
 
-    if (command.startsWith('resume')) {
+    if (commandName === 'resume') {
         return handleResume(message, null);
     }
 
-    if (command.startsWith('stop')) {
+    if (commandName === 'stop') {
         return handleStop(message, null);
     }
 
-    if (command.startsWith('skip')) {
+    if (commandName === 'skip') {
         return handleSkip(message, null);
     }
 
-    if (command.startsWith('queue')) {
+    if (commandName === 'queue') {
         return handleQueue(message, null);
     }
 
-    if (['hello', 'hey', 'yo', 'hi'].some(word => command.startsWith(word))) {
+    if (['hello', 'hey', 'yo', 'hi'].includes(commandName)) {
         return handleHello(message);
     }
 
     // Fun commands
-    if (command.startsWith('size') || command.includes('penis')) {
+    if (commandName === 'size' || command.includes('penis')) {
         return handleSize(message);
     }
 
-    if (command.startsWith('joke')) {
+    if (commandName === 'joke') {
         return handleJoke(message);
     }
 
-    if (command.startsWith('flip') || command.startsWith('coin')) {
+    if (commandName === 'flip' || commandName === 'coin') {
         return handleFlip(message, command);
     }
 
-    if (command.startsWith('roll')) {
+    if (commandName === 'roll') {
         return handleRoll(message, command);
     }
 
-    if (command.startsWith('hug')) {
+    if (commandName === 'hug') {
         return handleHug(message);
     }
 
-    if (command.startsWith('clap')) {
+    if (commandName === 'clap') {
         return handleClap(message);
     }
 
-    if (command.startsWith('insult')) {
+    if (commandName === 'insult') {
         return handleInsult(message);
     }
 
-    if (command.startsWith('love')) {
+    if (commandName === 'love') {
         return handleLove(message);
     }
 
     // Moderation
-    if (command.startsWith('kick')) {
+    if (commandName === 'kick') {
         return handleKick(message, command);
     }
 
     // Help
-    if (command.startsWith('help')) {
+    if (commandName === 'help') {
         return handleHelp(message);
     }
+
+    const fullTitle = getFullTitle(message);
+    await send(message, `${fullTitle}, I don't know that one. Try "jarvis help".`);
 }
