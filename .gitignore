@@ -1,6 +1,8 @@
 node_modules/
 dist/
-.envlogs/
+logs/*
+!logs/.gitkeep
 .env
+.DS_Store
 *.swp
 *-player-script.js
