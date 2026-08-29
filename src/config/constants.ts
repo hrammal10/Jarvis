@@ -17,23 +17,3 @@ export const JOKES = [
 ];
 
 export const AUTHORIZED_KICK_USERS = ['rythm', 'ihadi', 'dantehz'];
-
-export const PLAYER_OPTIONS = {
-    ytdlOptions: {
-        quality: 'highestaudio' as const,
-        highWaterMark: 1 << 25
-    },
-    skipFFmpeg: false,
-    useLegacyFFmpeg: true
-};
-
-export const QUEUE_OPTIONS = {
-    selfDeaf: false,
-    volume: 100,
-    leaveOnEmpty: false,
-    leaveOnEnd: false,
-    leaveOnStop: false,
-    bufferingTimeout: 15000,
-    connectionTimeout: undefined,
-};
-

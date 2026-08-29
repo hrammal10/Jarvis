@@ -3,7 +3,6 @@ import { getFullTitle, generateSize, sendGif, sleep, send } from '../utils/helpe
 import { JOKES } from '../config/constants';
 
 export async function handleSize(message: Message): Promise<void> {
-    const fullTitle = getFullTitle(message);
     await sendGif(message, 'processing');
     const result = generateSize();
     await send(message, `${result.size}\n${result.rating}`);
