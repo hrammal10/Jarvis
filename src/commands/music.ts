@@ -15,6 +15,8 @@ import {
     StreamType
 } from '../index';
 
+const connectionAttempts = new Map<string, Promise<void>>();
+
 async function playNext(guildId: string, textChannel: any) {
     const queue = queues.get(guildId);
     const player = players.get(guildId);
@@ -128,18 +130,45 @@ export async function handlePlay(message: Message, command: string, _unused: any
                 console.error('Player error:', error);
                 send(message, `❌ Playback error: ${error.message}`);
             });
-            
+
+            const connectionAttempt = entersState(connection, VoiceConnectionStatus.Ready, 30_000)
+                .then(() => undefined);
+            connectionAttempts.set(guildId, connectionAttempt);
+
             try {
-                await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
+                await connectionAttempt;
             } catch (error) {
-                connection.destroy();
-                connections.delete(guildId);
+                queues.delete(guildId);
+                if (players.get(guildId) === player) {
+                    players.delete(guildId);
+                    player.stop();
+                }
+                if (connections.get(guildId) === connection) {
+                    connections.delete(guildId);
+                    connection.destroy();
+                }
                 await send(message, `${fullTitle}, couldn't connect to voice channel!`);
                 return;
+            } finally {
+                if (connectionAttempts.get(guildId) === connectionAttempt) {
+                    connectionAttempts.delete(guildId);
+                }
+            }
+        } else {
+            const connectionAttempt = connectionAttempts.get(guildId);
+
+            if (connectionAttempt) {
+                try {
+                    await connectionAttempt;
+                } catch (error) {
+                    await send(message, `${fullTitle}, couldn't connect to voice channel!`);
+                    return;
+                }
             }
         }
 
-        if (queue.length === 1) {
+        const player = players.get(guildId);
+        if (player?.state.status === AudioPlayerStatus.Idle && queue.length > 0) {
             playNext(guildId, message.channel);
         } else {
             await send(message, `✅ Added to queue: **${result.title}** (Position: ${queue.length})`);
